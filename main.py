@@ -1,6 +1,5 @@
 import pygame as pg
 import sys
-from pygame.math import Vector2
 from classes.input import Input
 import config.constant as c
 from classes.scene_manager import SceneManager
@@ -28,11 +27,14 @@ while True:
     # feed input singleton
     Input.update(pg.key.get_pressed())
 
+    # clear NATIVE_SURFACE
+    NATIVE_SURFACE.fill("blue4")
+
     # update current_scene
     SceneManager.current_scene.update(delta)
 
-    # clear NATIVE_SURFACE
-    NATIVE_SURFACE.fill("blue4")
+    # render current_scene
+    SceneManager.current_scene.draw(NATIVE_SURFACE)
 
     # NATIVE_SURFACE -> DISPLAY_SURFACE
     SCALED_NATIVE_SURFACE = pg.transform.scale(
