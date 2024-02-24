@@ -10,7 +10,6 @@ from classes.camera import Camera
 
 class TestScene:
     def __init__(self):
-        pass
         # layers
         self.all_sprites = Group()
         # nodes
@@ -40,5 +39,7 @@ class TestScene:
             self.camera.position += pg.Vector2(1, 0)
 
     def draw(self, native_surface):
-        pass
         self.all_sprites.draw(native_surface, self.camera.position)
+
+    def input(self, event):
+        pass

@@ -19,3 +19,6 @@ class AnotherTestScene:
 
     def draw(self, native_surface):
         pass
+
+    def input(self, event):
+        pass

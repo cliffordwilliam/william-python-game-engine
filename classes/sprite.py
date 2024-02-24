@@ -22,6 +22,6 @@ class Sprite(pg.sprite.Sprite):
         frame_x, frame_y, frame_width, frame_height = self.frames_dict[self.frame_index]
         frame_rect = pg.Rect(frame_x, frame_y, frame_width, frame_height)
         # offset the self.rect by camera position
-        offset_pos = self.rect.topleft + camera_position
+        offset_pos = self.rect.topleft - camera_position
         # render chunk of spritesheet with camera offset
         native_surface.blit(self.image, offset_pos, frame_rect)

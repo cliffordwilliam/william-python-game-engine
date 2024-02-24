@@ -11,7 +11,9 @@ CLOCK = pg.time.Clock()
 NATIVE_SURFACE = pg.Surface(c.NATIVE_RESOLUTION)
 
 # set main scene
-SceneManager.change_scene_to_file("./scenes/test_scene.py", "TestScene")
+SceneManager.change_scene_to_file(
+    "./scenes/level_editor_scene.py", "LevelEditorScene")
+# SceneManager.change_scene_to_file("./scenes/test_scene.py", "TestScene")
 
 # main game loop
 while True:
@@ -23,6 +25,7 @@ while True:
         if event.type == pg.QUIT:
             pg.quit()
             sys.exit()
+        SceneManager.current_scene.input(event)
 
     # feed input singleton
     Input.update(pg.key.get_pressed())
