@@ -31,14 +31,14 @@ class LevelEditorScene:
         self.sprites_info = []
         # spritesheet
         self.spritesheet_surface = pg.image.load(join("images", "village.png"))
-        # the current choosen sprite display
-        self.current_sprite = Sprite(
-            self.spritesheet_surface, self.fixed_layer, 22, 10, True)
-        # set starting frame_index
-        self.current_sprite.frame_index = 0
-        # shift it by 1 tile
-        self.current_sprite.rect.topleft += pg.Vector2(
-            c.TILE_SIZE, 2 * c.TILE_SIZE)
+        # # the current choosen sprite display
+        # self.current_sprite = Sprite(
+        #     self.spritesheet_surface, self.fixed_layer, 22, 10, True)
+        # # set starting frame_index
+        # self.current_sprite.frame_index = 0
+        # # shift it by 1 tile
+        # self.current_sprite.rect.topleft += pg.Vector2(
+        #     c.TILE_SIZE, 2 * c.TILE_SIZE)
         # set the starting layer
         self.current_layer = 0
         # font
@@ -46,8 +46,16 @@ class LevelEditorScene:
         # menu
         # pretend fetch menu data from file - contains all classes - class = tree, house, grass
         # data should contain - icon, the file to be instanced
-        self.menu_items = [0, 0, 0, 0]
+        # TODO: store this somewhere else
+        self.menu_items = [
+            pg.Rect(c.TILE_SIZE * 4, c.TILE_SIZE * 5,
+                    c.TILE_SIZE * 4, c.TILE_SIZE * 3),
+            pg.Rect(c.TILE_SIZE * 0, c.TILE_SIZE * 5,
+                    c.TILE_SIZE * 4, c.TILE_SIZE * 3)
+        ]
         self.menu_offset = 0
+        self.menu_item_icon_width = 12
+        self.current_icon_rect = self.menu_items[0]
 
     def draw_ruler(self, surface):
         # Calculate the position of the ruler relative to the camera
@@ -107,22 +115,23 @@ class LevelEditorScene:
         # new_tile_sprite = Sprite(
         #     self.spritesheet_surface, self.layers[self.current_layer], 22, 10)
         # TODO: save this data somewhere else, fetch it here and create a menu to cycle between the items
-        # try hardcode a house
-        house_image_rect = pg.Rect(
-            c.TILE_SIZE * 4, c.TILE_SIZE * 5, c.TILE_SIZE * 4, c.TILE_SIZE * 3)
         new_tile_sprite = Sprite(
-            self.spritesheet_surface, self.layers[self.current_layer], 1, 1, False, house_image_rect)
+            self.spritesheet_surface, self.layers[self.current_layer], 1, 1, False, self.current_icon_rect)
         # set its position
         new_tile_sprite.rect.topleft = snapped_pos
         # set its frame_index
-        new_tile_sprite.frame_index = self.current_sprite.frame_index
+        # new_tile_sprite.frame_index = self.current_sprite.frame_index
         # update sprites_info
         sprite_info = {
             'topleft': new_tile_sprite.rect.topleft,
-            'frame_index': new_tile_sprite.frame_index,
+            # 'frame_index': new_tile_sprite.frame_index,
             'layer': self.layers[self.current_layer],
         }
         self.sprites_info.append(sprite_info)
+
+    def on_icon_click(self, icon_rect):
+        # Implement the logic for handling the click event on the icon here
+        self.current_icon_rect = icon_rect
 
     def update(self, delta):
         # move camera
@@ -136,11 +145,11 @@ class LevelEditorScene:
         #     print(self.sprites_info)
 
         # update current_sprite.frame_index and current_layer
-        if Input.is_action_just_pressed(pg.K_d):
-            self.current_sprite.frame_index += 1
+        # if Input.is_action_just_pressed(pg.K_d):
+        #     self.current_sprite.frame_index += 1
 
-        if Input.is_action_just_pressed(pg.K_a):
-            self.current_sprite.frame_index -= 1
+        # if Input.is_action_just_pressed(pg.K_a):
+        #     self.current_sprite.frame_index -= 1
 
         if Input.is_action_just_pressed(pg.K_w):
             self.current_layer += 1
@@ -158,8 +167,8 @@ class LevelEditorScene:
         self.current_layer = max(
             0, min(self.current_layer, len(self.layers) - 1))
 
-        self.current_sprite.frame_index = max(
-            0, min(self.current_sprite.frame_index, self.current_sprite.total_frames))
+        # self.current_sprite.frame_index = max(
+        #     0, min(self.current_sprite.frame_index, self.current_sprite.total_frames))
 
     def draw(self, native_surface):
         # render grid at most bottom
@@ -178,15 +187,69 @@ class LevelEditorScene:
             'current layer: %s' % self.current_layer, True, "aliceblue")
         native_surface.blit(current_layer_surface, (c.TILE_SIZE, c.TILE_SIZE))
         # render menu items
-        for i, item in enumerate(self.menu_items):
+        for i, icon_rect in enumerate(self.menu_items):
+            # create the frame
             item_rect = pg.Rect((0, 0), (c.TILE_SIZE, c.TILE_SIZE))
             item_rect.bottom = c.NATIVE_RESOLUTION_HEIGHT
             item_rect.left += i * c.TILE_SIZE
             item_rect.left += self.menu_offset
-            pg.draw.rect(native_surface, "red", item_rect)
+            # get icon
+            icon_surface = self.spritesheet_surface.subsurface(
+                icon_rect).copy()
+            current_width = icon_surface.get_width()
+            current_height = icon_surface.get_height()
+            desired_width = self.menu_item_icon_width
+            scale_factor = desired_width / current_width
+            desired_height = int(current_height * scale_factor)
+            scaled_icon_surface = pg.transform.scale(
+                icon_surface, (desired_width, desired_height))
+            # items center justify center
+            y_offset = int((16 - desired_height) // 2)
+            x_offset = int((16 - desired_width) // 2)
+            shifted_rect = item_rect.move(x_offset, y_offset)
+            pg.draw.rect(native_surface, "grey0", item_rect)
+            pg.draw.rect(native_surface, (255, 0, 0), item_rect, 1)
+            native_surface.blit(scaled_icon_surface, shifted_rect)
+        # render the current_icon_rect
+        # create the frame
+        item_rect = pg.Rect((0, 0), (c.TILE_SIZE, c.TILE_SIZE))
+        item_rect.topleft += pg.Vector2(c.TILE_SIZE, 2 * c.TILE_SIZE)
+        icon_surface = self.spritesheet_surface.subsurface(
+            self.current_icon_rect).copy()
+        current_width = icon_surface.get_width()
+        current_height = icon_surface.get_height()
+        desired_width = self.menu_item_icon_width
+        scale_factor = desired_width / current_width
+        desired_height = int(current_height * scale_factor)
+        scaled_icon_surface = pg.transform.scale(
+            icon_surface, (desired_width, desired_height))
+        # items center justify center
+        y_offset = int((16 - desired_height) // 2)
+        x_offset = int((16 - desired_width) // 2)
+        shifted_rect = item_rect.move(x_offset, y_offset)
+        pg.draw.rect(native_surface, "grey0", item_rect)
+        pg.draw.rect(native_surface, (255, 0, 0), item_rect, 1)
+        native_surface.blit(scaled_icon_surface, shifted_rect)
 
     def input(self, event):
         if event.type == pg.MOUSEBUTTONDOWN:
+            # right mouse click
             if event.button == 1:
+                mouse_pos = pg.mouse.get_pos()
+                # handle icon click
+                for i, icon_rect in enumerate(self.menu_items):
+                    # Calculate the position and dimensions of the scaled icon
+                    item_rect = pg.Rect((0, 0), (c.TILE_SIZE, c.TILE_SIZE))
+                    item_rect.bottom = c.NATIVE_RESOLUTION_HEIGHT
+                    item_rect.left += i * c.TILE_SIZE
+                    item_rect.left += self.menu_offset
+                    # Check if the mouse click occurred within the boundaries of the scaled icon
+                    scaled_pos = (
+                        mouse_pos[0] // self.scale_factor, mouse_pos[1] // self.scale_factor)
+                    if item_rect.collidepoint(scaled_pos):
+                        # Execute callback function for the clicked icon
+                        self.on_icon_click(icon_rect)
+                        return
+                # handle grid click
                 self.on_mouse_grid_left_click()
-        # TODO: buy a mouse - add a delete feature with the other button
+                # TODO: buy a mouse - add a delete feature with the other button
