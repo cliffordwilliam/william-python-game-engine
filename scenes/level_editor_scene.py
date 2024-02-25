@@ -43,6 +43,11 @@ class LevelEditorScene:
         self.current_layer = 0
         # font
         self.font = pg.font.Font(join("fonts", "cg-pixel-3x5.ttf"), 5)
+        # menu
+        # pretend fetch menu data from file - contains all classes - class = tree, house, grass
+        # data should contain - icon, the file to be instanced
+        self.menu_items = [0, 0, 0, 0]
+        self.menu_offset = 0
 
     def draw_ruler(self, surface):
         # Calculate the position of the ruler relative to the camera
@@ -99,8 +104,14 @@ class LevelEditorScene:
             if sprite.rect.topleft == snapped_pos:
                 return
         # instance sprite
+        # new_tile_sprite = Sprite(
+        #     self.spritesheet_surface, self.layers[self.current_layer], 22, 10)
+        # TODO: save this data somewhere else, fetch it here and create a menu to cycle between the items
+        # try hardcode a house
+        house_image_rect = pg.Rect(
+            c.TILE_SIZE * 4, c.TILE_SIZE * 5, c.TILE_SIZE * 4, c.TILE_SIZE * 3)
         new_tile_sprite = Sprite(
-            self.spritesheet_surface, self.layers[self.current_layer], 22, 10)
+            self.spritesheet_surface, self.layers[self.current_layer], 1, 1, False, house_image_rect)
         # set its position
         new_tile_sprite.rect.topleft = snapped_pos
         # set its frame_index
@@ -137,6 +148,12 @@ class LevelEditorScene:
         if Input.is_action_just_pressed(pg.K_s):
             self.current_layer -= 1
 
+        if Input.is_action_just_pressed(pg.K_e):
+            self.menu_offset += c.TILE_SIZE
+
+        if Input.is_action_just_pressed(pg.K_q):
+            self.menu_offset -= c.TILE_SIZE
+
         # clamp current_sprite.frame_index and current_layer
         self.current_layer = max(
             0, min(self.current_layer, len(self.layers) - 1))
@@ -160,6 +177,13 @@ class LevelEditorScene:
         current_layer_surface = self.font.render(
             'current layer: %s' % self.current_layer, True, "aliceblue")
         native_surface.blit(current_layer_surface, (c.TILE_SIZE, c.TILE_SIZE))
+        # render menu items
+        for i, item in enumerate(self.menu_items):
+            item_rect = pg.Rect((0, 0), (c.TILE_SIZE, c.TILE_SIZE))
+            item_rect.bottom = c.NATIVE_RESOLUTION_HEIGHT
+            item_rect.left += i * c.TILE_SIZE
+            item_rect.left += self.menu_offset
+            pg.draw.rect(native_surface, "red", item_rect)
 
     def input(self, event):
         if event.type == pg.MOUSEBUTTONDOWN:
