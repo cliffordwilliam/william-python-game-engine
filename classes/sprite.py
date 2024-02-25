@@ -34,5 +34,5 @@ class Sprite(pg.sprite.Sprite):
         # render chunk of spritesheet with camera offset
         native_surface.blit(self.image, offset_pos, frame_rect)
         # render rect outline
-        pg.draw.rect(native_surface, (255, 0, 0),
+        pg.draw.rect(native_surface, "brown4",
                      self.rect.move(-camera_position.x, -camera_position.y), 1)

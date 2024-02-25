@@ -11,6 +11,7 @@ from classes.camera import Camera
 # TODO: add autotiling feature - dedicate a mode + different texture to use
 class LevelEditorScene:
     def __init__(self):
+        # TODO: add layers feature - one layer is one thing -> ground, buildings, clouds - based on elevation level
         self.layer_1 = Group()
         self.layer_2 = Group()
         self.fixed_layer = Group()
@@ -208,7 +209,7 @@ class LevelEditorScene:
             x_offset = int((16 - desired_width) // 2)
             shifted_rect = item_rect.move(x_offset, y_offset)
             pg.draw.rect(native_surface, "grey0", item_rect)
-            pg.draw.rect(native_surface, (255, 0, 0), item_rect, 1)
+            pg.draw.rect(native_surface, "brown4", item_rect, 1)
             native_surface.blit(scaled_icon_surface, shifted_rect)
         # render the current_icon_rect
         # create the frame
@@ -228,7 +229,7 @@ class LevelEditorScene:
         x_offset = int((16 - desired_width) // 2)
         shifted_rect = item_rect.move(x_offset, y_offset)
         pg.draw.rect(native_surface, "grey0", item_rect)
-        pg.draw.rect(native_surface, (255, 0, 0), item_rect, 1)
+        pg.draw.rect(native_surface, "brown4", item_rect, 1)
         native_surface.blit(scaled_icon_surface, shifted_rect)
 
     def input(self, event):
