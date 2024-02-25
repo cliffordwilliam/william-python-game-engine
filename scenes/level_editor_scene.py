@@ -24,34 +24,66 @@ class LevelEditorScene:
         self.camera = Camera()
         # grid settings
         self.grid_size = c.TILE_SIZE
-        self.grid_color = "blue3"
+        self.grid_color = "gray5"
+        self.grid_color_secondary = "gray10"
         self.scale_factor = c.DISPLAY_WIDTH // c.NATIVE_RESOLUTION_WIDTH
         # to be saved
         self.sprites_info = []
         # spritesheet
         self.spritesheet_surface = pg.image.load(join("images", "village.png"))
-        # the current choosen sprite display - TODO: DISPLAY THIS INFO ON SCREEN
+        # the current choosen sprite display
         self.current_sprite = Sprite(
             self.spritesheet_surface, self.fixed_layer, 22, 10, True)
         # set starting frame_index
         self.current_sprite.frame_index = 0
-        # shift it down by 1 tile
-        self.current_sprite.rect.topleft += pg.Vector2(0, c.TILE_SIZE)
+        # shift it by 1 tile
+        self.current_sprite.rect.topleft += pg.Vector2(
+            c.TILE_SIZE, 2 * c.TILE_SIZE)
         # set the starting layer
         self.current_layer = 0
+        # font
+        self.font = pg.font.Font(join("fonts", "cg-pixel-3x5.ttf"), 5)
 
-    def draw_grid(self, surface):
-        # self.camera.position -> rel pos
+    def draw_ruler(self, surface):
+        # Calculate the position of the ruler relative to the camera
         rel_x = self.camera.position.x % self.grid_size
         rel_y = self.camera.position.y % self.grid_size
+
+        # Calculate the starting number based on the current scroll position
+        start_number_x = self.camera.position.x // self.grid_size
+        start_number_y = self.camera.position.y // self.grid_size
+
+        # Draw vertical ruler
+        for x in range(0, c.NATIVE_RESOLUTION_WIDTH + c.TILE_SIZE, self.grid_size):
+            number = int(start_number_x + x // self.grid_size)
+            text_surface = self.font.render(str(number), True, "white")
+            surface.blit(text_surface, (x - rel_x, 0))
+
+        # Draw horizontal ruler
+        for y in range(0, c.NATIVE_RESOLUTION_HEIGHT + c.TILE_SIZE, self.grid_size):
+            number = int(start_number_y + y // self.grid_size)
+            text_surface = self.font.render(str(number), True, "white")
+            surface.blit(text_surface, (0, y - rel_y))
+
+    def draw_grid(self, surface, multiplier=1, color=None):
+        # custom color?
+        if color is None:
+            color = self.grid_color
+        # self.camera.position -> rel pos
+        rel_x = self.camera.position.x % (self.grid_size*multiplier)
+        rel_y = self.camera.position.y % (self.grid_size*multiplier)
         # draw v line as much as native width + offset
-        for x in range(0, c.NATIVE_RESOLUTION_WIDTH, self.grid_size):
-            pg.draw.line(surface, self.grid_color, (x - rel_x, 0),
+        for x in range(0, c.NATIVE_RESOLUTION_WIDTH + c.TILE_SIZE, (self.grid_size*multiplier)):
+            pg.draw.line(surface, color, (x - rel_x, 0),
                          (x - rel_x, c.NATIVE_RESOLUTION_HEIGHT))
         # draw h line as much as native width + offset
-        for y in range(0, c.NATIVE_RESOLUTION_HEIGHT, self.grid_size):
-            pg.draw.line(surface, self.grid_color, (0, y - rel_y),
+        for y in range(0, c.NATIVE_RESOLUTION_HEIGHT + c.TILE_SIZE, (self.grid_size*multiplier)):
+            pg.draw.line(surface, color, (0, y - rel_y),
                          (c.NATIVE_RESOLUTION_WIDTH, y - rel_y))
+
+    def draw_origin(self, surface):
+        pg.draw.circle(surface, "red", (0 - self.camera.position.x,
+                       0 - self.camera.position.y), 1)
 
     def snap_to_grid(self, pos):
         scaled_pos = (pos[0] // self.scale_factor, pos[1] // self.scale_factor)
@@ -115,14 +147,19 @@ class LevelEditorScene:
     def draw(self, native_surface):
         # render grid at most bottom
         self.draw_grid(native_surface)
+        # render sec grid at most bottom
+        self.draw_grid(native_surface, 5, self.grid_color_secondary)
+        # render origin
+        self.draw_origin(native_surface)
+        # render the rulers
+        self.draw_ruler(native_surface)
         # render the layers from bottom up
         for layer in self.layers:
             layer.draw(native_surface, self.camera.position)
         # render current_layer here for dynamic value
-        font = pg.font.SysFont(None, 16)
-        current_layer_surface = font.render(
+        current_layer_surface = self.font.render(
             'current layer: %s' % self.current_layer, True, "aliceblue")
-        native_surface.blit(current_layer_surface, (0, 0))
+        native_surface.blit(current_layer_surface, (c.TILE_SIZE, c.TILE_SIZE))
 
     def input(self, event):
         if event.type == pg.MOUSEBUTTONDOWN:

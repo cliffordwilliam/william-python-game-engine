@@ -3,6 +3,7 @@ import sys
 from classes.input import Input
 import config.constant as c
 from classes.scene_manager import SceneManager
+from os.path import join
 
 # init pygame
 pg.init()
@@ -12,7 +13,7 @@ NATIVE_SURFACE = pg.Surface(c.NATIVE_RESOLUTION)
 
 # set main scene
 SceneManager.change_scene_to_file(
-    "./scenes/level_editor_scene.py", "LevelEditorScene")
+    join("scenes", "level_editor_scene.py"), "LevelEditorScene")
 # SceneManager.change_scene_to_file("./scenes/test_scene.py", "TestScene")
 
 # main game loop
@@ -31,7 +32,7 @@ while True:
     Input.update(pg.key.get_pressed())
 
     # clear NATIVE_SURFACE
-    NATIVE_SURFACE.fill("blue4")
+    NATIVE_SURFACE.fill("gray0")
 
     # update current_scene
     SceneManager.current_scene.update(delta)
