@@ -112,78 +112,130 @@ class LevelEditorScene:
         return (scaled_mouse_pos_x, scaled_mouse_pos_y)
 
     def on_mouse_grid_left_click(self, mouse_pos_with_scaled_camera_offset):
+        # snap mouse position to grid top left cell
         snapped_pos = self.snap_to_grid(mouse_pos_with_scaled_camera_offset)
-        # check collision with existing sprites in the same layer
+
+        # Loop through each sprite
         for sprite in self.layers[self.current_layer]:
+            # Check if sprite rect matches snapped position
             if sprite.rect.topleft == snapped_pos:
                 return
-        # instance sprite
-        if self.current_is_autotile == False:
-            new_tile_sprite = Sprite(
-                self.spritesheet_surface, self.layers[self.current_layer], self.current_h_frame, self.current_v_frame, False, self.current_spritesheet_rect)
-            # set its position
-            new_tile_sprite.rect.topleft = snapped_pos
-        else:
-            new_tile_sprite = Sprite(
-                self.spritesheet_surface, self.layers[self.current_layer], self.current_h_frame, self.current_v_frame, False, self.current_spritesheet_rect)
-            # set its position
-            new_tile_sprite.rect.topleft = snapped_pos
 
-            # check others in this layer
+        # Instance sprite
+        new_tile_sprite = Sprite(self.spritesheet_surface, self.layers[self.current_layer],
+                                 self.current_h_frame, self.current_v_frame, False, self.current_spritesheet_rect)
+
+        # Set its position
+        new_tile_sprite.rect.topleft = snapped_pos
+
+        # Autotile sprite handling
+        if self.current_is_autotile:
+            #  get THIS
             for sprite in self.layers[self.current_layer]:
-                # possible locations around me
-                neighbor_positions = [
-                    (sprite.rect.left - c.TILE_SIZE,
-                     sprite.rect.top - c.TILE_SIZE),
-                    (sprite.rect.left, sprite.rect.top - c.TILE_SIZE),
-                    (sprite.rect.left + c.TILE_SIZE,
-                     sprite.rect.top - c.TILE_SIZE),
-                    (sprite.rect.left - c.TILE_SIZE, sprite.rect.top),
-                    (sprite.rect.left + c.TILE_SIZE, sprite.rect.top),
-                    (sprite.rect.left - c.TILE_SIZE,
-                     sprite.rect.top + c.TILE_SIZE),
-                    (sprite.rect.left, sprite.rect.top + c.TILE_SIZE),
-                    (sprite.rect.left + c.TILE_SIZE, sprite.rect.top + c.TILE_SIZE)
+                # prepare mask
+                mask = [
+                    [0, 0, 0],
+                    [0, 1, 0],
+                    [0, 0, 0]
                 ]
-                # possible locations around me -> TILE unit
-                neighboring_tiles = [
-                    (pos[0] // c.TILE_SIZE, pos[1] // c.TILE_SIZE) for pos in neighbor_positions]
-                bitmask = 0
-                # check others against me
                 for other_sprite in self.layers[self.current_layer]:
-                    # other pos -> TILE unit
-                    pos = other_sprite.rect.left // c.TILE_SIZE, other_sprite.rect.top // c.TILE_SIZE
-                    # other TILE unit inside possible locations around me?
-                    if pos in neighboring_tiles:
-                        bitmask |= 1 << neighboring_tiles.index(pos)
-                # Now, you have the bitmask representing neighboring tiles configuration
-                print(bitmask)
-                # bit : frame_index
-                frame_indices = {
-                    0: 18,  # NONE
+                    # OTHER rel to THIS
+                    dx = (other_sprite.rect.left -
+                          sprite.rect.left) // c.TILE_SIZE
+                    dy = (other_sprite.rect.top -
+                          sprite.rect.top) // c.TILE_SIZE
 
-                    16: 3,  # R
-                    8: 13,  # L
-                    24: 8,  # L R
+                    # Update THIS mask based on ALL OTHER
+                    possible_positions = [
+                        [(-1, -1), (0, -1), (1, -1),],
+                        [(-1, 0), (0, 0), (1, 0),],
+                        [(-1, 1), (0, 1), (1, 1)]
+                    ]
+                    for y, row in enumerate(possible_positions):
+                        for x, possible_position in enumerate(row):
+                            if possible_position == (dx, dy):
+                                mask[y][x] = 1
+                # mask ready
+                # TODO: remove this DEBUG prop later
+                sprite.mask = mask
 
-                    64: 15,  # B
-                    66: 16,  # T B
-                    2: 17,  # T
+    #     # Now, you have the bitmask representing neighboring tiles configuration
+    #     # bit : frame_index
+    #     frame_indices = {
+    #         ((0, 0, 0),
+    #          (0, 0, 0),
+    #          (0, 0, 0)): 18,
 
-                    208: 0,  # R BR B
-                    214: 1,  # T TR R BR B
-                    22: 2,  # T TR R
-                    248: 5,  # L BL B BR R
-                    # ALL -> randomly select 4, 6, or 9
-                    255: random.choice([4, 6, 9]),
-                    31: 7,  # L TL T TR R
-                    104: 10,  # L BL B
-                    107: 11,  # T TL L BL B
-                    11: 12,  # L TL T
+    #         ((0, 0, 0),
+    #          (0, 0, 1),
+    #          (0, 0, 0)): 3,
 
-                    # TODO: DO THE REST
-                }
-                sprite.frame_index = frame_indices.get(bitmask, 18)
+    #         ((0, 0, 0),
+    #          (1, 0, 0),
+    #          (0, 0, 0)): 13,
+
+    #         ((0, 0, 0),
+    #          (1, 0, 1),
+    #          (0, 0, 0)): 8,
+
+    #         # 16: 3,  # R
+    #         # 8: 13,  # L
+    #         # 40: 13,  # L
+    #         # 24: 8,  # L R
+
+    #         # 64: 15,  # B
+    #         # 66: 16,  # T B
+    #         # 2: 17,  # T
+    #         # 6: 17,  # T
+    #         # 3: 17,  # T
+
+    #         # 208: 0,  # R BR B
+    #         # 214: 1,  # T TR R BR B
+    #         # 22: 2,  # T TR R
+    #         # 248: 5,  # L BL B BR R
+    #         # # ALL -> randomly select 4, 6, or 9
+    #         # 255: random.choice([4, 6, 9]),
+    #         # 31: 7,  # L TL T TR R
+    #         # 104: 10,  # L BL B
+    #         # 107: 11,  # T TL L BL B
+    #         # 11: 12,  # L TL T
+    #         # 80: 20,  # B R
+    #         # 86: 21,  # T TR R B
+    #         # 210: 22,  # T R BR B
+    #         # 18: 23,  # T R
+    #         # 82: 24,  # T R B
+    #         # 120: 25,  # L BL B R
+    #         # 127: 26,  # ALL BUT BR
+    #         # 251: 27,  # ALL BUT TR
+    #         # 27: 28,  # L TL T R
+    #         # 123: 29,  # ALL BUT TR & BR
+    #         # 216: 30,  # B BR R L
+    #         # 223: 31,  # ALL BUT BL
+    #         # 254: 32,  # ALL BUT TL
+    #         # 30: 33,  # T TR R L
+    #         # 222: 34,  # ALL BU BL TL
+    #         # 72: 35,  # L B
+    #         # 75: 36,  # L TL T B
+    #         # 106: 37,  # B BL L T
+    #         # 10: 38,  # L T
+    #         # 74: 39,  # B L T
+    #         # 88: 40,  # L B R
+    #         # 35: 41,  # ALL BUT BL BR
+    #         # 250: 42,  # ALL BUT TL TR
+    #         # 26: 43,  # L T R
+    #         # 30: 44,  # L T R B
+    #         # 251: 45,  # ALL BUT TR
+    #         # 126: 46,  # ALL BUT TL BR
+    #         # 218: 47,  # L T R BR B
+    #         # 34: 48,  # L B L T TR R
+    #         # 122: 52,  # T R B BL L
+    #         # 31: 53,  # T R B BL L
+    #     }
+    #     print(mask_tuple)
+    #     sprite.frame_index = frame_indices.get(mask_tuple, 18)
+    #     # print(mask_tuple, sprite.frame_index)
+    #     # sprite.frame_index = frame_indices.get(bitmask, 18)
+    #     sprite.bitmask_number = bitmask
 
     def on_mouse_grid_right_click(self, mouse_pos_with_scaled_camera_offset):
         snapped_pos = self.snap_to_grid(mouse_pos_with_scaled_camera_offset)

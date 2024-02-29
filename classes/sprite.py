@@ -1,4 +1,5 @@
 import pygame as pg
+from os.path import join  # debug for font rendering
 
 
 class Sprite(pg.sprite.Sprite):
@@ -18,21 +19,61 @@ class Sprite(pg.sprite.Sprite):
                 frame_y = row * self.frame_height
                 self.frames_dict[len(self.frames_dict)] = (
                     frame_x, frame_y, self.frame_width, self.frame_height)
-        self.ignore_camera = ignore_camera
-        # self.rect = surface.get_frect()
         self.rect = pg.Rect((0, 0), (self.frame_width, self.frame_height))
+        self.ignore_camera = ignore_camera
+
+        # DEBUG TODO: remove later
+        self.font = pg.font.Font(join("fonts", "cg-pixel-3x5.ttf"), 5)
+        self.mask = []
 
     def draw(self, native_surface, camera_position=pg.Vector2(0, 0)):
         # self.frame_index -> frame_rect -> draw a chunk of self.image
         frame_x, frame_y, frame_width, frame_height = self.frames_dict[self.frame_index]
         frame_rect = pg.Rect(frame_x, frame_y, frame_width, frame_height)
+
         # offset the self.rect by camera position
         if self.ignore_camera:
             offset_pos = self.rect.topleft
         else:
             offset_pos = self.rect.topleft - camera_position
+
         # render chunk of spritesheet with camera offset
         native_surface.blit(self.image, offset_pos, frame_rect)
+
         # render rect outline
+        # self.debug_render_rect_outline(native_surface, camera_position)
+
+        # debug render frame index
+        # self.debug_font_draw(native_surface, camera_position, "debug text")
+
+        # debug draw bitmap
+        self.debug_bitmask_draw(native_surface, camera_position, self.mask)
+
+    # TODO: remove later
+    def debug_render_rect_outline(self, native_surface, camera_position):
         pg.draw.rect(native_surface, "brown4",
                      self.rect.move(-camera_position.x, -camera_position.y), 1)
+
+    def debug_font_draw(self, native_surface, camera_position, string):
+        debug_surface = self.font.render(string, True, "white")
+        native_surface.blit(
+            debug_surface, self.rect.move(-camera_position.x, -camera_position.y))
+
+    def debug_bitmask_draw(self, native_surface, camera_position, mask):
+        #  bitmask surf -> native_surf
+        bitmask_surface = pg.Surface((self.frame_width, self.frame_height))
+        bitmask_surface.set_alpha(100)
+
+        # check my mask -> draw rect -> bitmask surf
+        for y, row in enumerate(mask):
+            for x, bit in enumerate(row):
+                if bit == 1:
+                    size = self.frame_width / 3
+                    xpos = x * size
+                    ypos = y * size
+                    pg.draw.rect(bitmask_surface, "red",
+                                 (xpos, ypos, size, size))
+
+        # bitmask surf -> native_surface
+        native_surface.blit(
+            bitmask_surface, self.rect.move(-camera_position.x, -camera_position.y))
