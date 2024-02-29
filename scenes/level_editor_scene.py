@@ -21,19 +21,25 @@ class LevelEditorScene:
             Group()
         ]
         self.current_layer = 0
+
         # camera
         self.camera = Camera()
+
         # grid settings
         self.grid_size = c.TILE_SIZE
         self.grid_color = "gray5"
         self.grid_color_secondary = "gray10"
         self.scale_factor = c.DISPLAY_WIDTH // c.NATIVE_RESOLUTION_WIDTH
+
         # to be saved
         # self.sprites_info = []
+
         # spritesheet
         self.spritesheet_surface = pg.image.load(join("images", "village.png"))
+
         # font
         self.font = pg.font.Font(join("fonts", "cg-pixel-3x5.ttf"), 5)
+
         # menu
         self.menu_items = []
         for item in VILLAGE_RECT_DATA:
@@ -58,14 +64,17 @@ class LevelEditorScene:
         # calculate the position of the ruler relative to the camera
         rel_x = self.camera.position.x % self.grid_size
         rel_y = self.camera.position.y % self.grid_size
+
         # calculate the starting number based on the current scroll position
         start_number_x = self.camera.position.x // self.grid_size
         start_number_y = self.camera.position.y // self.grid_size
+
         # draw vertical ruler
         for x in range(0, c.NATIVE_RESOLUTION_WIDTH + c.TILE_SIZE, self.grid_size):
             number = int(start_number_x + x // self.grid_size)
             text_surface = self.font.render(str(number), True, "white")
             surface.blit(text_surface, (x - rel_x, 0))
+
         # draw horizontal ruler
         for y in range(0, c.NATIVE_RESOLUTION_HEIGHT + c.TILE_SIZE, self.grid_size):
             number = int(start_number_y + y // self.grid_size)
@@ -76,13 +85,16 @@ class LevelEditorScene:
         # custom color?
         if color is None:
             color = self.grid_color
+
         # self.camera.position -> rel pos
         rel_x = self.camera.position.x % (self.grid_size * multiplier)
         rel_y = self.camera.position.y % (self.grid_size * multiplier)
+
         # draw v line as much as native width + offset
         for x in range(0, c.NATIVE_RESOLUTION_WIDTH + c.TILE_SIZE, (self.grid_size * multiplier)):
             pg.draw.line(surface, color, (x - rel_x, 0),
                          (x - rel_x, c.NATIVE_RESOLUTION_HEIGHT))
+
         # draw h line as much as native width + offset
         for y in range(0, c.NATIVE_RESOLUTION_HEIGHT + c.TILE_SIZE, (self.grid_size * multiplier)):
             pg.draw.line(surface, color, (0, y - rel_y),
@@ -130,8 +142,11 @@ class LevelEditorScene:
 
         # Autotile sprite handling
         if self.current_is_autotile:
-            #  get THIS
+            new_tile_sprite.is_autotile = True
+            #  get THIS - ignore non autotile
             for sprite in self.layers[self.current_layer]:
+                if sprite.is_autotile == False:
+                    continue
                 # prepare mask
                 mask = [
                     [0, 0, 0],
@@ -151,91 +166,279 @@ class LevelEditorScene:
                         [(-1, 0), (0, 0), (1, 0),],
                         [(-1, 1), (0, 1), (1, 1)]
                     ]
+                    # TODO: update corner checks, eg. tr corder is true if there is a top and right neigbour
                     for y, row in enumerate(possible_positions):
                         for x, possible_position in enumerate(row):
                             if possible_position == (dx, dy):
                                 mask[y][x] = 1
                 # mask ready
                 # TODO: remove this DEBUG prop later
+
+                # filter, if the top-left bit is set, the cell directly above, directly left, and diagonally above-left must be filled
+
+                # handle TL
+                if mask[0][0] == 1:
+                    if mask[0][1] == 0 or mask[1][0] == 0:
+                        mask[0][0] = 0
+
+                # handle TR
+                if mask[0][2] == 1:
+                    if mask[0][1] == 0 or mask[1][2] == 0:
+                        mask[0][2] = 0
+
+                # handle BL
+                if mask[2][0] == 1:
+                    if mask[1][0] == 0 or mask[2][1] == 0:
+                        mask[2][0] = 0
+
+                # handle BR
+                if mask[2][2] == 1:
+                    if mask[1][2] == 0 or mask[2][1] == 0:
+                        mask[2][2] = 0
+
                 sprite.mask = mask
-
-    #     # Now, you have the bitmask representing neighboring tiles configuration
-    #     # bit : frame_index
-    #     frame_indices = {
-    #         ((0, 0, 0),
-    #          (0, 0, 0),
-    #          (0, 0, 0)): 18,
-
-    #         ((0, 0, 0),
-    #          (0, 0, 1),
-    #          (0, 0, 0)): 3,
-
-    #         ((0, 0, 0),
-    #          (1, 0, 0),
-    #          (0, 0, 0)): 13,
-
-    #         ((0, 0, 0),
-    #          (1, 0, 1),
-    #          (0, 0, 0)): 8,
-
-    #         # 16: 3,  # R
-    #         # 8: 13,  # L
-    #         # 40: 13,  # L
-    #         # 24: 8,  # L R
-
-    #         # 64: 15,  # B
-    #         # 66: 16,  # T B
-    #         # 2: 17,  # T
-    #         # 6: 17,  # T
-    #         # 3: 17,  # T
-
-    #         # 208: 0,  # R BR B
-    #         # 214: 1,  # T TR R BR B
-    #         # 22: 2,  # T TR R
-    #         # 248: 5,  # L BL B BR R
-    #         # # ALL -> randomly select 4, 6, or 9
-    #         # 255: random.choice([4, 6, 9]),
-    #         # 31: 7,  # L TL T TR R
-    #         # 104: 10,  # L BL B
-    #         # 107: 11,  # T TL L BL B
-    #         # 11: 12,  # L TL T
-    #         # 80: 20,  # B R
-    #         # 86: 21,  # T TR R B
-    #         # 210: 22,  # T R BR B
-    #         # 18: 23,  # T R
-    #         # 82: 24,  # T R B
-    #         # 120: 25,  # L BL B R
-    #         # 127: 26,  # ALL BUT BR
-    #         # 251: 27,  # ALL BUT TR
-    #         # 27: 28,  # L TL T R
-    #         # 123: 29,  # ALL BUT TR & BR
-    #         # 216: 30,  # B BR R L
-    #         # 223: 31,  # ALL BUT BL
-    #         # 254: 32,  # ALL BUT TL
-    #         # 30: 33,  # T TR R L
-    #         # 222: 34,  # ALL BU BL TL
-    #         # 72: 35,  # L B
-    #         # 75: 36,  # L TL T B
-    #         # 106: 37,  # B BL L T
-    #         # 10: 38,  # L T
-    #         # 74: 39,  # B L T
-    #         # 88: 40,  # L B R
-    #         # 35: 41,  # ALL BUT BL BR
-    #         # 250: 42,  # ALL BUT TL TR
-    #         # 26: 43,  # L T R
-    #         # 30: 44,  # L T R B
-    #         # 251: 45,  # ALL BUT TR
-    #         # 126: 46,  # ALL BUT TL BR
-    #         # 218: 47,  # L T R BR B
-    #         # 34: 48,  # L B L T TR R
-    #         # 122: 52,  # T R B BL L
-    #         # 31: 53,  # T R B BL L
-    #     }
-    #     print(mask_tuple)
-    #     sprite.frame_index = frame_indices.get(mask_tuple, 18)
-    #     # print(mask_tuple, sprite.frame_index)
-    #     # sprite.frame_index = frame_indices.get(bitmask, 18)
-    #     sprite.bitmask_number = bitmask
+                # mask -> frame index
+                # TODO: somehow make the frameindex be dynamic to each diff autotile
+                frame_indices = {
+                    (
+                        (0, 0, 0),
+                        (0, 1, 1),
+                        (0, 1, 1)
+                    ): 0,
+                    (
+                        (0, 1, 1),
+                        (0, 1, 1),
+                        (0, 1, 1)
+                    ): 1,
+                    (
+                        (0, 1, 1),
+                        (0, 1, 1),
+                        (0, 0, 0)
+                    ): 2,
+                    (
+                        (0, 0, 0),
+                        (0, 1, 1),
+                        (0, 0, 0)
+                    ): 3,
+                    (
+                        (1, 1, 1),
+                        (1, 1, 1),
+                        (1, 1, 1)
+                    ): random.choice([4, 6, 9]),
+                    (
+                        (0, 0, 0),
+                        (1, 1, 1),
+                        (1, 1, 1)
+                    ): 5,
+                    (
+                        (1, 1, 1),
+                        (1, 1, 1),
+                        (0, 0, 0)
+                    ): 7,
+                    (
+                        (0, 0, 0),
+                        (1, 1, 1),
+                        (0, 0, 0)
+                    ): 8,
+                    (
+                        (0, 0, 0),
+                        (1, 1, 0),
+                        (1, 1, 0)
+                    ): 10,
+                    (
+                        (1, 1, 0),
+                        (1, 1, 0),
+                        (1, 1, 0)
+                    ): 11,
+                    (
+                        (1, 1, 0),
+                        (1, 1, 0),
+                        (0, 0, 0)
+                    ): 12,
+                    (
+                        (0, 0, 0),
+                        (1, 1, 0),
+                        (0, 0, 0)
+                    ): 13,
+                    (
+                        (0, 0, 0),
+                        (0, 1, 0),
+                        (0, 1, 0)
+                    ): 15,
+                    (
+                        (0, 1, 0),
+                        (0, 1, 0),
+                        (0, 1, 0)
+                    ): 16,
+                    (
+                        (0, 1, 0),
+                        (0, 1, 0),
+                        (0, 0, 0)
+                    ): 17,
+                    (
+                        (0, 0, 0),
+                        (0, 1, 0),
+                        (0, 0, 0)
+                    ): 18,
+                    (
+                        (0, 0, 0),
+                        (0, 1, 1),
+                        (0, 1, 0)
+                    ): 20,
+                    (
+                        (0, 1, 1),
+                        (0, 1, 1),
+                        (0, 1, 0)
+                    ): 21,
+                    (
+                        (0, 1, 0),
+                        (0, 1, 1),
+                        (0, 1, 1)
+                    ): 22,
+                    (
+                        (0, 1, 0),
+                        (0, 1, 1),
+                        (0, 0, 0)
+                    ): 23,
+                    (
+                        (0, 1, 0),
+                        (0, 1, 1),
+                        (0, 1, 0)
+                    ): 24,
+                    (
+                        (0, 0, 0),
+                        (1, 1, 1),
+                        (1, 1, 0)
+                    ): 25,
+                    (
+                        (1, 1, 1),
+                        (1, 1, 1),
+                        (1, 1, 0)
+                    ): 26,
+                    (
+                        (1, 1, 0),
+                        (1, 1, 1),
+                        (1, 1, 1)
+                    ): 27,
+                    (
+                        (1, 1, 0),
+                        (1, 1, 1),
+                        (0, 0, 0)
+                    ): 28,
+                    (
+                        (1, 1, 0),
+                        (1, 1, 1),
+                        (1, 1, 0)
+                    ): 29,
+                    (
+                        (0, 0, 0),
+                        (1, 1, 1),
+                        (0, 1, 1)
+                    ): 30,
+                    (
+                        (1, 1, 1),
+                        (1, 1, 1),
+                        (0, 1, 1)
+                    ): 31,
+                    (
+                        (0, 1, 1),
+                        (1, 1, 1),
+                        (1, 1, 1)
+                    ): 32,
+                    (
+                        (0, 1, 1),
+                        (1, 1, 1),
+                        (0, 0, 0)
+                    ): 33,
+                    (
+                        (0, 1, 1),
+                        (1, 1, 1),
+                        (0, 1, 1)
+                    ): 34,
+                    (
+                        (0, 0, 0),
+                        (1, 1, 0),
+                        (0, 1, 0)
+                    ): 35,
+                    (
+                        (1, 1, 0),
+                        (1, 1, 0),
+                        (0, 1, 0)
+                    ): 36,
+                    (
+                        (0, 1, 0),
+                        (1, 1, 0),
+                        (1, 1, 0)
+                    ): 37,
+                    (
+                        (0, 1, 0),
+                        (1, 1, 0),
+                        (0, 0, 0)
+                    ): 38,
+                    (
+                        (0, 1, 0),
+                        (1, 1, 0),
+                        (0, 1, 0)
+                    ): 39,
+                    (
+                        (0, 0, 0),
+                        (1, 1, 1),
+                        (0, 1, 0)
+                    ): 40,
+                    (
+                        (1, 1, 1),
+                        (1, 1, 1),
+                        (0, 1, 0)
+                    ): 41,
+                    (
+                        (0, 1, 0),
+                        (1, 1, 1),
+                        (1, 1, 1)
+                    ): 42,
+                    (
+                        (0, 1, 0),
+                        (1, 1, 1),
+                        (0, 0, 0)
+                    ): 43,
+                    (
+                        (0, 1, 0),
+                        (1, 1, 1),
+                        (0, 1, 0)
+                    ): 44,
+                    (
+                        (1, 1, 0),
+                        (1, 1, 1),
+                        (0, 1, 1)
+                    ): 45,
+                    (
+                        (0, 1, 1),
+                        (1, 1, 1),
+                        (1, 1, 0)
+                    ): 46,
+                    (
+                        (0, 1, 0),
+                        (1, 1, 1),
+                        (0, 1, 1)
+                    ): 47,
+                    (
+                        (0, 1, 1),
+                        (1, 1, 1),
+                        (0, 1, 0)
+                    ): 48,
+                    (
+                        (0, 1, 0),
+                        (1, 1, 1),
+                        (1, 1, 0)
+                    ): 52,
+                    (
+                        (1, 1, 0),
+                        (1, 1, 1),
+                        (0, 1, 0)
+                    ): 53,
+                }
+                #  mask -> sprite.frame_index
+                tuple_key = tuple(map(tuple, mask))
+                sprite.frame_index = frame_indices.get(tuple_key, 18)
 
     def on_mouse_grid_right_click(self, mouse_pos_with_scaled_camera_offset):
         snapped_pos = self.snap_to_grid(mouse_pos_with_scaled_camera_offset)

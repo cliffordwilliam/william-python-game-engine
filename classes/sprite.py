@@ -25,6 +25,7 @@ class Sprite(pg.sprite.Sprite):
         # DEBUG TODO: remove later
         self.font = pg.font.Font(join("fonts", "cg-pixel-3x5.ttf"), 5)
         self.mask = []
+        self.is_autotile = False
 
     def draw(self, native_surface, camera_position=pg.Vector2(0, 0)):
         # self.frame_index -> frame_rect -> draw a chunk of self.image
