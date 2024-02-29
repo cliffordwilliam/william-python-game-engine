@@ -41,14 +41,14 @@ class Sprite(pg.sprite.Sprite):
         # render chunk of spritesheet with camera offset
         native_surface.blit(self.image, offset_pos, frame_rect)
 
-        # render rect outline
+        # debug render rect outline
         # self.debug_render_rect_outline(native_surface, camera_position)
 
         # debug render frame index
         # self.debug_font_draw(native_surface, camera_position, "debug text")
 
         # debug draw bitmap
-        self.debug_bitmask_draw(native_surface, camera_position, self.mask)
+        # self.debug_bitmask_draw(native_surface, camera_position, self.mask)
 
     # TODO: remove later
     def debug_render_rect_outline(self, native_surface, camera_position):
